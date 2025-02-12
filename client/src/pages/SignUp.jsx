@@ -1,12 +1,17 @@
 import { useState } from 'react';
-import { Link, useNavigate } from 'react-router-dom';
-
+import { Link, useNavigate,Navigate } from 'react-router-dom';
+import { useSelector } from 'react-redux';
 
 export default function SignUp() {
   const [formData, setFormData] = useState({});
   const [error, setError] = useState(false);
-  const [loading, setLoading] = useState(false);
+  const [ loading, setLoading] = useState(false);
   const navigate = useNavigate();
+  const { currentUser } = useSelector((state) => state.user);
+  if (currentUser) {
+    return <Navigate to="/" />;
+  }
+
   const handleChange = (e) => {
     setFormData({ ...formData, [e.target.id]: e.target.value });
   };

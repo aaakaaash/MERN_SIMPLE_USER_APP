@@ -1,5 +1,5 @@
 import { useState } from 'react';
-import { Link, useNavigate } from 'react-router-dom';
+import { Link, useNavigate , Navigate} from 'react-router-dom';
 import {
   signInStart,
   signInSuccess,
@@ -10,10 +10,15 @@ import { useDispatch, useSelector } from 'react-redux';
 
 export default function SignIn() {
   const [formData, setFormData] = useState({});
-  const { loading, error } = useSelector((state) => state.user);
+  const { currentUser,loading, error } = useSelector((state) => state.user);
 
   const navigate = useNavigate();
   const dispatch = useDispatch();
+
+  if (currentUser) {
+    return <Navigate to="/" />;
+  }
+
   const handleChange = (e) => {
     setFormData({ ...formData, [e.target.id]: e.target.value });
   };
