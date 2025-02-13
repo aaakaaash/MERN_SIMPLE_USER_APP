@@ -1,28 +1,21 @@
-import { useState } from 'react';
-import { Link, useNavigate , Navigate} from 'react-router-dom';
-import {
-  signInStart,
-  signInSuccess,
-  signInFailure,
-} from '../redux/user/userSlice';
-import { useDispatch, useSelector } from 'react-redux';
 
+import { useState } from 'react';
+import { Link, useNavigate, Navigate } from 'react-router-dom';
+import { signInStart, signInSuccess, signInFailure } from '../redux/user/userSlice';
+import { useDispatch, useSelector } from 'react-redux';
 
 export default function SignIn() {
   const [formData, setFormData] = useState({});
-  const { currentUser,loading, error } = useSelector((state) => state.user);
-
+  const { currentUser, loading, error } = useSelector((state) => state.user);
   const navigate = useNavigate();
   const dispatch = useDispatch();
 
   if (currentUser) {
     return <Navigate to="/" />;
   }
-
   const handleChange = (e) => {
     setFormData({ ...formData, [e.target.id]: e.target.value });
   };
-
   const handleSubmit = async (e) => {
     e.preventDefault();
     try {
@@ -33,13 +26,25 @@ export default function SignIn() {
           'Content-Type': 'application/json',
         },
         body: JSON.stringify(formData),
+        credentials: 'include' // Important for cookies
       });
+      
       const data = await res.json();
       if (data.success === false) {
         dispatch(signInFailure(data));
         return;
       }
-      dispatch(signInSuccess(data));
+
+      // Store token if it exists in response
+      if (data.token) {
+        localStorage.setItem('token', data.token);
+        // Remove token from data before storing in Redux
+        const { token, ...userData } = data;
+        dispatch(signInSuccess(userData));
+      } else {
+        dispatch(signInSuccess(data));
+      }
+      
       navigate('/');
     } catch (error) {
       dispatch(signInFailure(error));

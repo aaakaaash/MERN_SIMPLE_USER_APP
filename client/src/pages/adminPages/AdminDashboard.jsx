@@ -1,8 +1,10 @@
 import { useEffect, useState } from "react";
+import { useSelector } from 'react-redux';
 import toast, { Toaster } from "react-hot-toast";
 import Swal from "sweetalert2";
 
 const AdminDashboard = () => {
+  const { currentUser } = useSelector(state => state.user);
   const [data, setData] = useState([]); 
   const [filteredData, setFilteredData] = useState([]); 
   const [searchQuery, setSearchQuery] = useState(""); 
@@ -10,19 +12,39 @@ const AdminDashboard = () => {
   const [error, setError] = useState(null);
 
   useEffect(() => {
+    console.log("Current User:", currentUser);
+    console.log("Is Admin?", currentUser?.isAdmin);
+    console.log("Token:", localStorage.getItem("token"));
     fetchUsers();
   }, []);
 
   const fetchUsers = async () => {
     try {
       setLoading(true);
-      const response = await fetch(`/api/admin`);
-      if (!response.ok) throw new Error("Failed to fetch users");
+      const token = localStorage.getItem("token");
+      
+      const response = await fetch(`/api/admin`, {
+        method: "GET",
+        headers: {
+          "Content-Type": "application/json",
+          ...(token && { "Authorization": `Bearer ${token}` })
+        },
+        credentials: 'include' 
+      });
+  
+      if (!response.ok) {
+        const errorData = await response.json();
+        throw new Error(errorData.message || "Failed to fetch users");
+      }
+  
       const result = await response.json();
+      console.log("Fetched data:", result);
       setData(result);
-      setFilteredData(result); 
+      setFilteredData(result);
     } catch (error) {
+      console.error("Fetch error:", error);
       setError(error.message);
+      toast.error(error.message);
     } finally {
       setLoading(false);
     }
@@ -32,44 +54,54 @@ const AdminDashboard = () => {
     try {
       const response = await fetch(`/api/admin/block/${userId}`, {
         method: "PUT",
-        headers: { "Content-Type": "application/json" },
+        headers: {
+          "Content-Type": "application/json",
+          "Authorization": `Bearer ${localStorage.getItem("token")}`, // Send token
+        },
         body: JSON.stringify({ isBlocked: !isBlocked }),
       });
-
+  
       if (!response.ok) throw new Error("Failed to update status");
-
+  
       toast.success(isBlocked ? "User unblocked" : "User blocked");
       fetchUsers();
     } catch (error) {
       toast.error(error.message);
     }
   };
+  
 
   const handleDelete = async (userId) => {
     Swal.fire({
-        title: "Are you sure?",
-        text: "This action cannot be undone!",
-        icon: "warning",
-        showCancelButton: true,
-        confirmButtonColor: "#d33",
-        cancelButtonColor: "#3085d6",
-        confirmButtonText: "Yes, delete it!",
-        cancelButtonText: "Cancel"
+      title: "Are you sure?",
+      text: "This action cannot be undone!",
+      icon: "warning",
+      showCancelButton: true,
+      confirmButtonColor: "#d33",
+      cancelButtonColor: "#3085d6",
+      confirmButtonText: "Yes, delete it!",
+      cancelButtonText: "Cancel",
     }).then(async (result) => {
-        if (!result.isConfirmed) return;
-
-        try {
-            const response = await fetch(`/api/admin/delete/${userId}`, { method: "DELETE" });
-            if (!response.ok) throw new Error("Failed to delete user");
-
-            Swal.fire("Deleted!", "User has been deleted.", "success");
-            fetchUsers();
-        } catch (error) {
-            Swal.fire("Error!", error.message, "error");
-        }
+      if (!result.isConfirmed) return;
+  
+      try {
+        const response = await fetch(`/api/admin/delete/${userId}`, {
+          method: "DELETE",
+          headers: {
+            "Authorization": `Bearer ${localStorage.getItem("token")}`, // Send token
+          },
+        });
+  
+        if (!response.ok) throw new Error("Failed to delete user");
+  
+        Swal.fire("Deleted!", "User has been deleted.", "success");
+        fetchUsers();
+      } catch (error) {
+        Swal.fire("Error!", error.message, "error");
+      }
     });
   };
-
+  
   const handleSearch = (e) => {
     const query = e.target.value.toLowerCase();
     setSearchQuery(query);

@@ -51,6 +51,7 @@ const userSlice = createSlice({
       state.currentUser = null;
       state.loading = false;
       state.error = false;
+      localStorage.removeItem('token');
     },
   },
 });
